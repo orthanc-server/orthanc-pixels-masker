@@ -1,0 +1,121 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Orthanc debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/../build/orthanc/Orthanc",
+            // "program": "/home/alain/Releases/Orthanc-1.12.4",
+            "args": ["${workspaceRoot}/../build/configs/orthanc.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            // "args": ["${workspaceRoot}/../build/configs/orthanc.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            //"args": ["--openapi=/home/alain/o/orthanc-book/OpenAPI/orthanc-openapi.json"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            // "args": ["--cheatsheet=/home/alain/o/orthanc-book/Sphinx/source/users/rest-cheatsheet.csv"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/../build/orthanc",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            "logging": {
+                "trace": false,
+                "traceResponse": false,
+                "engineLogging": false
+            }
+        },
+        {
+            "name": "Orthanc PG debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/../build/orthanc/Orthanc",
+            // "program": "/home/alain/Releases/Orthanc-1.12.4",
+            "args": ["${workspaceRoot}/../build/configs/orthanc-pg.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            // "args": ["${workspaceRoot}/../build/configs/orthanc.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            //"args": ["--openapi=/home/alain/o/orthanc-book/OpenAPI/orthanc-openapi.json"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            // "args": ["--cheatsheet=/home/alain/o/orthanc-book/Sphinx/source/users/rest-cheatsheet.csv"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/../build/orthanc",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            "logging": {
+                "trace": false,
+                "traceResponse": false,
+                "engineLogging": false
+            }
+        },
+        {
+            "name": "Orthanc Integ debug PG",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/../build/orthanc/Orthanc",
+            // "program": "/home/alain/Releases/Orthanc-1.12.4",
+            "args": ["/home/alain/o/orthanc-tests/NewTests/configurations/AdvancedStoragePG.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            // "args": ["${workspaceRoot}/../build/configs/orthanc.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            //"args": ["--openapi=/home/alain/o/orthanc-book/OpenAPI/orthanc-openapi.json"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            // "args": ["--cheatsheet=/home/alain/o/orthanc-book/Sphinx/source/users/rest-cheatsheet.csv"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/../build/orthanc",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            "logging": {
+                "trace": false,
+                "traceResponse": false,
+                "engineLogging": false
+            }
+        },
+        {
+            "name": "Orthanc Integ debug SQLite",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/../build/orthanc/Orthanc",
+            // "program": "/home/alain/Releases/Orthanc-1.12.4",
+            "args": ["/home/alain/o/orthanc-tests/NewTests/configurations/AdvancedStorage.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            // "args": ["${workspaceRoot}/../build/configs/orthanc.json", "--no-jobs", "--verbose"], //, "--trace-dicom"], //, "--upgrade"],
+            //"args": ["--openapi=/home/alain/o/orthanc-book/OpenAPI/orthanc-openapi.json"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            // "args": ["--cheatsheet=/home/alain/o/orthanc-book/Sphinx/source/users/rest-cheatsheet.csv"], //"--no-jobs", "--verbose"], //, "--upgrade"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/../build/orthanc",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            "logging": {
+                "trace": false,
+                "traceResponse": false,
+                "engineLogging": false
+            }
+        },
+    ]
+}
