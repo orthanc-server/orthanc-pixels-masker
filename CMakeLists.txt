@@ -26,12 +26,12 @@ project(OrthancPixelsMasker)
 set(ORTHANC_PLUGIN_VERSION "mainline")
 set(ORTHANC_PLUGIN_NAME "pixels-masker")
 
-if (ORTHANC_PLUGIN_VERSION STREQUAL "mainline")
-  set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "mainline")
-  set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "hg")
-else()
+if (PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
   set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "1.12.10")
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "web")
+else()
+  set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "mainline")
+  set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "hg")
 endif()
 
 
