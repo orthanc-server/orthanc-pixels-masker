@@ -156,7 +156,7 @@ class DicomPixelsMasker : public Orthanc::DicomModification::IDicomModifier
 private:
   std::list<BaseRegion*>   regions_;
 
-  void ApplyToLittleEndian(Orthanc::ParsedDicomFile& dicom);
+  void ApplyInplaceToRawImage(Orthanc::ParsedDicomFile& dicom);
   
 public:
   DicomPixelsMasker();

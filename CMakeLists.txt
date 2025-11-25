@@ -24,7 +24,7 @@ cmake_minimum_required(VERSION 2.8...4.0)
 project(OrthancPixelsMasker)
 
 set(ORTHANC_PLUGIN_VERSION "mainline")
-set(ORTHANC_PLUGIN_NAME "skeleton")
+set(ORTHANC_PLUGIN_NAME "pixels-masker")
 
 if (ORTHANC_PLUGIN_VERSION STREQUAL "mainline")
   set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "mainline")

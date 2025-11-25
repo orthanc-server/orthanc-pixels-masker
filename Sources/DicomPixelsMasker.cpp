@@ -287,7 +287,7 @@ bool DicomPixelsMasker::Region3D::GetPixelMaskArea(unsigned int& x1,
 }
 
 
-void DicomPixelsMasker::ApplyToLittleEndian(Orthanc::ParsedDicomFile& dicom)
+void DicomPixelsMasker::ApplyInplaceToRawImage(Orthanc::ParsedDicomFile& dicom)
 {
   for (std::list<BaseRegion*>::const_iterator it = regions_.begin(); it != regions_.end(); ++it)
   {
@@ -309,7 +309,7 @@ void DicomPixelsMasker::ApplyToLittleEndian(Orthanc::ParsedDicomFile& dicom)
           std::swap(y1, y2);
         }
         
-        std::unique_ptr<Orthanc::ImageAccessor> frame(dicom.GetRawFrame(i));
+        std::unique_ptr<Orthanc::ImageAccessor> frame(dicom.GetRawFrameForInplaceModification(i));
 
         assert(x1 <= x2);
         assert(y1 <= y2);
@@ -352,11 +352,32 @@ void DicomPixelsMasker::Apply(std::unique_ptr<Orthanc::ParsedDicomFile>& toModif
   {
     throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "Unable to get the transfer syntax of instance");
   }
-  
-  if (currentTransferSyntax == Orthanc::DicomTransferSyntax_LittleEndianImplicit ||
-      currentTransferSyntax == Orthanc::DicomTransferSyntax_LittleEndianExplicit)
+
+  bool inplaceModification = false;
+  switch (Orthanc::Toolbox::DetectEndianness())
   {
-    ApplyToLittleEndian(*toModify);
+    case Orthanc::Endianness_Little:
+      if (currentTransferSyntax == Orthanc::DicomTransferSyntax_LittleEndianImplicit ||
+          currentTransferSyntax == Orthanc::DicomTransferSyntax_LittleEndianExplicit)
+      {
+        inplaceModification = true;
+      }
+      break;
+
+    case Orthanc::Endianness_Big:
+      if (currentTransferSyntax == Orthanc::DicomTransferSyntax_BigEndianExplicit)
+      {
+        inplaceModification = true;
+      }
+      break;
+
+    default:
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+  }
+  
+  if (inplaceModification)
+  {
+    ApplyInplaceToRawImage(*toModify);
   }
   else
   {
@@ -372,7 +393,7 @@ void DicomPixelsMasker::Apply(std::unique_ptr<Orthanc::ParsedDicomFile>& toModif
     }
 
     toModify.reset(new Orthanc::ParsedDicomFile(dicom));
-    ApplyToLittleEndian(*toModify);
+    ApplyInplaceToRawImage(*toModify);
   }
 }
 
