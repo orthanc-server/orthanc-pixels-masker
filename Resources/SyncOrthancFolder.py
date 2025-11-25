@@ -32,7 +32,7 @@ import stat
 import urllib.request
 
 TARGET = os.path.join(os.path.dirname(__file__), 'Orthanc')
-PLUGIN_SDK_VERSION = '1.0.0'
+PLUGIN_SDK_VERSION = '1.7.0'
 REPOSITORY = 'https://orthanc.uclouvain.be/hg/%s/raw-file'
 
 FILES = [
