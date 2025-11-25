@@ -75,6 +75,7 @@ else()
   include(${ORTHANC_FRAMEWORK_ROOT}/../Resources/CMake/OrthancFrameworkParameters.cmake)
 
   set(ENABLE_LOCALE ON)  # Locales must be enabled for DCMTK
+  set(ENABLE_ZLIB ON)
   set(ENABLE_MODULE_JOBS OFF CACHE INTERNAL "")
   set(ENABLE_MODULE_DICOM ON CACHE INTERNAL "")
   set(ENABLE_DCMTK ON CACHE INTERNAL "")
