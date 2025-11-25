@@ -252,7 +252,7 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
   add_definitions(
     -D_XOPEN_SOURCE=1
     )
-
+  
   # Linking with iconv breaks the Universal builds on modern compilers
   # link_libraries(iconv)
 
