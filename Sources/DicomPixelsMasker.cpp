@@ -353,10 +353,13 @@ void DicomPixelsMasker::Apply(std::unique_ptr<Orthanc::ParsedDicomFile>& toModif
     throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "Unable to get the transfer syntax of instance");
   }
 
+  std::string targetTransferSyntax;
   bool inplaceModification = false;
   switch (Orthanc::Toolbox::DetectEndianness())
   {
     case Orthanc::Endianness_Little:
+      targetTransferSyntax = "1.2.840.10008.1.2.1";  // Explicit VR Little Endian
+
       if (currentTransferSyntax == Orthanc::DicomTransferSyntax_LittleEndianImplicit ||
           currentTransferSyntax == Orthanc::DicomTransferSyntax_LittleEndianExplicit)
       {
@@ -365,6 +368,8 @@ void DicomPixelsMasker::Apply(std::unique_ptr<Orthanc::ParsedDicomFile>& toModif
       break;
 
     case Orthanc::Endianness_Big:
+      targetTransferSyntax = "1.2.840.10008.1.2.2";  // Explicit VR Big Endian
+
       if (currentTransferSyntax == Orthanc::DicomTransferSyntax_BigEndianExplicit)
       {
         inplaceModification = true;
@@ -386,9 +391,9 @@ void DicomPixelsMasker::Apply(std::unique_ptr<Orthanc::ParsedDicomFile>& toModif
     toModify->SaveToMemoryBuffer(dicom);
 
     {
+      assert(!targetTransferSyntax.empty());
       std::unique_ptr<OrthancPlugins::DicomInstance> transcoded(
-        OrthancPlugins::DicomInstance::Transcode(dicom.empty() ? NULL : dicom.c_str(), dicom.size(),
-                                                 "1.2.840.10008.1.2.1" /* Explicit VR Little Endian */));
+        OrthancPlugins::DicomInstance::Transcode(dicom.empty() ? NULL : dicom.c_str(), dicom.size(), targetTransferSyntax));
       transcoded->Serialize(dicom);
     }
 
