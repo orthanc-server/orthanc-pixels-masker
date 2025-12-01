@@ -28,9 +28,7 @@
 #include <SerializationToolbox.h>
 
 
-static void GetInstances(std::vector<std::string>& instances,
-                         Orthanc::ResourceType level,
-                         std::string resourceId)
+static std::string GetBasePath(Orthanc::ResourceType level)
 {
   std::string base;
   switch (level)
@@ -47,12 +45,27 @@ static void GetInstances(std::vector<std::string>& instances,
       base = "/series/";
       break;
 
+    case Orthanc::ResourceType_Instance:
+      base = "/instances/";
+      break;
+
     default:
       throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
   }
-    
+  return base;
+}
+
+static void GetInstances(std::vector<std::string>& instances,
+                         Orthanc::ResourceType level,
+                         std::string resourceId)
+{
+  if (level == Orthanc::ResourceType_Instance)
+  {
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+  }
+
   Json::Value json;
-  if (!OrthancPlugins::RestApiGet(json, base + resourceId + "/instances", false))
+  if (!OrthancPlugins::RestApiGet(json, GetBasePath(level) + resourceId + "/instances", false))
   {
     throw Orthanc::OrthancException(Orthanc::ErrorCode_UnknownResource);
   }
@@ -70,10 +83,46 @@ static void GetInstances(std::vector<std::string>& instances,
   }
 }
 
+static void GetLabels(std::set<std::string>& labels,
+                      Orthanc::ResourceType level,
+                      std::string resourceId)
+{
+  Json::Value jsonLabels;
+
+  if (!OrthancPlugins::RestApiGet(jsonLabels, GetBasePath(level) + resourceId+ "/labels", false))
+  {
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_UnknownResource, "Resource has been removed : " + GetBasePath(level) + resourceId);
+  }
+  Orthanc::SerializationToolbox::ReadSetOfStrings(labels, jsonLabels);
+}
+
+static void SetLabels(const std::set<std::string>& labels,
+                      Orthanc::ResourceType level,
+                      std::string resourceId)
+{
+  Json::Value result;
+  Json::Value emptyPayload;
+
+  for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+  {
+    if (!OrthancPlugins::RestApiPut(result, GetBasePath(level) + resourceId + "/labels/" + *it, emptyPayload, false))
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_UnknownResource, "Failed to set label to : " + GetBasePath(level) + resourceId);
+    }
+  }
+}
+
+
+
 
 void PixelsMaskerJob::ApplyToDicomInstance(IDicomConsumer& consumer,
                                            const std::string& instanceId)
 {
+  std::set<std::string> instanceLabels;
+  std::set<std::string> seriesLabels;
+  std::set<std::string> studyLabels;
+  std::set<std::string> patientLabels;
+
   std::string file;
   if (!OrthancPlugins::RestApiGetString(file, "/instances/" + instanceId + "/file", false))
   {
@@ -81,9 +130,22 @@ void PixelsMaskerJob::ApplyToDicomInstance(IDicomConsumer& consumer,
   }
 
   std::unique_ptr<Orthanc::ParsedDicomFile> dicom(new Orthanc::ParsedDicomFile(file));
+
+  if (keepLabels_)
+  {
+    Orthanc::DicomInstanceHasher originalHasher(dicom->GetHasher());
+
+    GetLabels(instanceLabels, Orthanc::ResourceType_Instance, instanceId);
+    GetLabels(seriesLabels, Orthanc::ResourceType_Series, originalHasher.HashSeries());
+    GetLabels(studyLabels, Orthanc::ResourceType_Study, originalHasher.HashStudy());
+    GetLabels(patientLabels, Orthanc::ResourceType_Patient, originalHasher.HashPatient());
+  }
+
   modification_->Apply(dicom);
 
   dicom->SaveToMemoryBuffer(file);
+
+  std::unique_ptr<Orthanc::DicomInstanceHasher> modifiedHasher;
 
   Json::Value answer;
   if (transcode_)
@@ -92,10 +154,29 @@ void PixelsMaskerJob::ApplyToDicomInstance(IDicomConsumer& consumer,
     std::unique_ptr<OrthancPlugins::DicomInstance> transcoded(OrthancPlugins::DicomInstance::Transcode(file.empty() ? NULL : file.c_str(), file.size(), targetSyntax_));
 
     consumer.Consume(transcoded->GetBuffer(), transcoded->GetSize());
+
+    if (keepLabels_)
+    {
+      std::unique_ptr<Orthanc::ParsedDicomFile> transcodedParsedDicomFile(new Orthanc::ParsedDicomFile(transcoded->GetBuffer(), transcoded->GetSize()));
+      modifiedHasher.reset(new Orthanc::DicomInstanceHasher(transcodedParsedDicomFile->GetHasher()));
+    }
   }
   else
   {
     consumer.Consume(file.empty() ? NULL : file.c_str(), file.size());
+
+    if (keepLabels_)
+    {
+      modifiedHasher.reset(new Orthanc::DicomInstanceHasher(dicom->GetHasher()));
+    }
+  }
+
+  if (keepLabels_)
+  {
+    SetLabels(instanceLabels, Orthanc::ResourceType_Instance, modifiedHasher->HashInstance());
+    SetLabels(seriesLabels, Orthanc::ResourceType_Series, modifiedHasher->HashSeries());
+    SetLabels(studyLabels, Orthanc::ResourceType_Study, modifiedHasher->HashStudy());
+    SetLabels(patientLabels, Orthanc::ResourceType_Patient, modifiedHasher->HashPatient());
   }
 }
 
@@ -108,10 +189,12 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
   modification_(modification),
   transcode_(false),
   keepSource_(true),
+  keepLabels_(false),
   current_(0)
 {
   static const char* const TRANSCODE = "Transcode";
   static const char* const KEEP_SOURCE = "KeepSource";
+  static const char* const KEEP_LABELS = "KeepLabels";
 
   if (modification == NULL)
   {
@@ -133,6 +216,11 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
   if (body.isMember(KEEP_SOURCE))
   {
     keepSource_ = Orthanc::SerializationToolbox::ReadBoolean(body, KEEP_SOURCE);
+  }
+
+  if (body.isMember(KEEP_LABELS))
+  {
+    keepLabels_ = Orthanc::SerializationToolbox::ReadBoolean(body, KEEP_LABELS);
   }
 
   {
@@ -177,12 +265,12 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
         
   try
   {
-    if (current_ == 0)
+    if (current_ == 0) // first step
     {
       ClearContent();
     }
 
-    if (current_ == instances_.size())
+    if (current_ == instances_.size()) // last step
     {
       if (!keepSource_)
       {

@@ -33,8 +33,11 @@ private:
   bool                                         transcode_;
   std::string                                  targetSyntax_;
   bool                                         keepSource_;
+  bool                                         keepLabels_;
   std::vector<std::string>                     instances_;
   size_t                                       current_;
+
+  std::map<std::string, std::set<std::string> > labelsToKeep_;  // labels per resourceId
 
   class IDicomConsumer : public boost::noncopyable
   {
