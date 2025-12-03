@@ -275,7 +275,7 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
     GetInstances(instances_, level, resourceId);
   }
 
-  publicContent_[KEY_INSTANCES_COUNT] = instances_.size();
+  publicContent_[KEY_INSTANCES_COUNT] = static_cast<unsigned int>(instances_.size());
   publicContent_[KEY_FAILED_INSTANCES_COUNT] = 0;
   publicContent_["ID"] = resourceId;
   publicContent_[KEY_TYPE] = GetType(level);
