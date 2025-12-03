@@ -21,6 +21,8 @@
 
 
 # This file sets all the compiler-related flags
+message(STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CMAKE_SYSTEM_NAME is ${CMAKE_SYSTEM_NAME}")
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
   # Since Orthanc 1.12.7 that allows CMake 4.0, builds for macOS
