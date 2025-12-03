@@ -25,20 +25,15 @@
 
 #include <DicomParsing/DicomModification.h>
 #include <OrthancPluginCppWrapper.h>
+#include <MultiThreading/BlockingSharedMessageQueue.h>
+
+#include <boost/thread/mutex.hpp>
+#include <boost/thread.hpp>
+
 
 class PixelsMaskerJob : public OrthancPlugins::OrthancJob
 {
-private:
-  std::unique_ptr<Orthanc::DicomModification>  modification_;
-  bool                                         transcode_;
-  std::string                                  targetSyntax_;
-  bool                                         keepSource_;
-  bool                                         keepLabels_;
-  std::vector<std::string>                     instances_;
-  size_t                                       current_;
-
-  std::map<std::string, std::set<std::string> > labelsToKeep_;  // labels per resourceId
-
+public:
   class IDicomConsumer : public boost::noncopyable
   {
   public:
@@ -50,14 +45,32 @@ private:
                          size_t size) = 0;
   };
 
+private:
+  std::unique_ptr<Orthanc::DicomModification>  modification_;
+  bool                                         transcode_;
+  std::string                                  targetSyntax_;
+  bool                                         keepSource_;
+  bool                                         keepLabels_;
+  std::vector<std::string>                     instances_;
+  size_t                                       current_;
+  
+  size_t                                       workerThreadsCount_;
+  std::vector<boost::thread*>                  workerThreads_;
+  bool                                         workersShouldStop_;
+  Orthanc::BlockingSharedMessageQueue          instancesToProcess_;
+
+
   void ApplyToDicomInstance(IDicomConsumer& consumer,
                             const std::string& instanceId);
+
+  static void ModifierWorkerThread(PixelsMaskerJob* that);
 
 public:
   PixelsMaskerJob(Orthanc::DicomModification* modification,
                   Orthanc::ResourceType level,
                   const std::string& resourceId,
-                  const Json::Value& body);
+                  const Json::Value& body,
+                  size_t workerThreadsCount);
 
   virtual OrthancPluginJobStepStatus Step() ORTHANC_OVERRIDE;
 
@@ -66,6 +79,8 @@ public:
   }    
 
   virtual void Reset() ORTHANC_OVERRIDE;
+
+  void ClearThreads();
 
   void ApplyToDicomInstance(std::string& modifiedDicom,
                             const std::string& instanceId);

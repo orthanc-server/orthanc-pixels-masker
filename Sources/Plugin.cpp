@@ -33,6 +33,7 @@
 static const int32_t GlobalProperty_AnonymizationSequence = 4655;  // TODO - Document this in the Orthanc Book
 
 static std::string defaultPrivateCreator_;
+static unsigned int workerThreadsCount_ = 1;
 
 
 static void ParseModifyRequest(Json::Value& body,
@@ -119,7 +120,7 @@ static void ModifyResource(OrthancPluginRestOutput* output,
       ParseModifyRequest(body, *modification, request);
     }
 
-    std::unique_ptr<PixelsMaskerJob> job(new PixelsMaskerJob(modification.release(), level, resourceId, body));
+    std::unique_ptr<PixelsMaskerJob> job(new PixelsMaskerJob(modification.release(), level, resourceId, body, workerThreadsCount_));
 
     Json::Value answer = Json::objectValue;
     OrthancPlugins::OrthancJob::SubmitFromRestApiPost(output, answer, job.release());
@@ -153,7 +154,7 @@ static void ModifyInstance(OrthancPluginRestOutput* output,
       ParseModifyRequest(body, *modification, request);
     }
 
-    PixelsMaskerJob job(modification.release(), Orthanc::ResourceType_Instance, instanceId, body);
+    PixelsMaskerJob job(modification.release(), Orthanc::ResourceType_Instance, instanceId, body, 1);
 
     std::string modified;
     job.ApplyToDicomInstance(modified, instanceId);
@@ -210,7 +211,14 @@ extern "C"
     {
       OrthancPlugins::OrthancConfiguration configuration;
       defaultPrivateCreator_ = configuration.GetStringValue("DefaultPrivateCreator", "");
-      
+
+      if (configuration.IsSection("JobsEngineThreadsCount"))
+      {
+        OrthancPlugins::OrthancConfiguration jobsEngineThreadsCountConfig;
+        configuration.GetSection(jobsEngineThreadsCountConfig, "JobsEngineThreadsCount");
+        jobsEngineThreadsCountConfig.LookupUnsignedIntegerValue(workerThreadsCount_, "ResourceModification");
+      }
+
       OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Patient, false> >("/plugins/pixels-masker/patients/([0-9a-f-]+)/modify", true);
       OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Study, false> >("/plugins/pixels-masker/studies/([0-9a-f-]+)/modify", true);
       OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Series, false> >("/plugins/pixels-masker/series/([0-9a-f-]+)/modify", true);

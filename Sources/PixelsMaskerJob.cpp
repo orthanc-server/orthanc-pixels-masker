@@ -26,6 +26,10 @@
 #include "DicomPixelsMasker.h"
 
 #include <SerializationToolbox.h>
+#include <Logging.h>
+
+
+static std::unique_ptr<OrthancPlugins::OrthancConfiguration> globalConfiguration_;
 
 
 static std::string GetBasePath(Orthanc::ResourceType level)
@@ -184,13 +188,17 @@ void PixelsMaskerJob::ApplyToDicomInstance(IDicomConsumer& consumer,
 PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
                                  Orthanc::ResourceType level,
                                  const std::string& resourceId,
-                                 const Json::Value& body) :
+                                 const Json::Value& body,
+                                 size_t workerThreadsCount) :
   OrthancJob("PixelsMasker"),
   modification_(modification),
   transcode_(false),
   keepSource_(true),
   keepLabels_(false),
-  current_(0)
+  current_(0),
+  workerThreadsCount_(workerThreadsCount),
+  workersShouldStop_(false),
+  instancesToProcess_(workerThreadsCount)
 {
   static const char* const TRANSCODE = "Transcode";
   static const char* const KEEP_SOURCE = "KeepSource";
@@ -239,35 +247,89 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
   }
 }
 
+static boost::mutex modifierThreadsCounterMutex;
+static uint32_t modifierThreadsCounter = 0;
+
+class UploadConsumer : public PixelsMaskerJob::IDicomConsumer
+{
+private:
+  Json::Value answer_;
+  
+public:
+  virtual void Consume(const void* dicom,
+                        size_t size) ORTHANC_OVERRIDE
+  {
+    if (!OrthancPlugins::RestApiPost(answer_, "/instances", dicom, size, false))
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot upload modified instance");
+    }
+  }
+
+  std::string GetUploadedId() const
+  {
+    return Orthanc::SerializationToolbox::ReadString(answer_, "ID");
+  }
+};
+
+
+void PixelsMaskerJob::ModifierWorkerThread(PixelsMaskerJob* that)
+{
+  {
+    boost::mutex::scoped_lock lock(modifierThreadsCounterMutex);
+    Orthanc::Logging::SetCurrentThreadName(std::string("PIXM-MODI-") + boost::lexical_cast<std::string>(modifierThreadsCounter++));
+    modifierThreadsCounter %= 1000000;
+  }
+
+  while (true)
+  {
+    std::unique_ptr<Orthanc::SingleValueObject<std::string> > instanceToProcess(dynamic_cast<Orthanc::SingleValueObject<std::string>*>(that->instancesToProcess_.Dequeue(0)));
+    if (instanceToProcess.get() == NULL || that->workersShouldStop_)  // that's the signal to exit the thread
+    {
+      LOG(INFO) << "Modifier thread has completed";
+      return;
+    }
+    
+    try
+    {
+      UploadConsumer consumer;
+      std::string sourceId = instanceToProcess->GetValue();
+
+      that->ApplyToDicomInstance(consumer, sourceId);
+
+      const std::string uploadedId = consumer.GetUploadedId();
+      const std::string metadata = (that->modification_->IsAnonymization() ? "AnonymizedFrom" : "ModifiedFrom");
+
+      Json::Value answer;
+      if (!OrthancPlugins::RestApiPut(answer, "/instances/" + uploadedId + "/metadata/" + metadata, sourceId, false))
+      {
+        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot set metadata: " + metadata);
+      }
+    }
+    catch (Orthanc::OrthancException& e)
+    {
+      LOG(ERROR) << "Error while modifying instances " << e.GetDetails();
+    }
+    catch (...)
+    {
+      LOG(ERROR) << "Unknown error while modifying instances ";
+    }
+  }
+}
+
 
 OrthancPluginJobStepStatus PixelsMaskerJob::Step()
 {
-  class UploadConsumer : public IDicomConsumer
-  {
-  private:
-    Json::Value answer_;
-    
-  public:
-    virtual void Consume(const void* dicom,
-                         size_t size) ORTHANC_OVERRIDE
-    {
-      if (!OrthancPlugins::RestApiPost(answer_, "/instances", dicom, size, false))
-      {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot upload modified instance");
-      }
-    }
-
-    std::string GetUploadedId() const
-    {
-      return Orthanc::SerializationToolbox::ReadString(answer_, "ID");
-    }
-  };
-        
   try
   {
     if (current_ == 0) // first step
     {
       ClearContent();
+
+      for (size_t i = 0; i < workerThreadsCount_; i++)
+      {
+        workerThreads_.push_back(new boost::thread(ModifierWorkerThread, this));
+      }
+
     }
 
     if (current_ == instances_.size()) // last step
@@ -281,26 +343,16 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
       }
 
       UpdateProgress(1);
+      ClearThreads();
       
       return OrthancPluginJobStepStatus_Success;
     }
     else
     {
       UpdateProgress(static_cast<float>(current_) / static_cast<float>(instances_.size()));
-      
-      const std::string sourceId = instances_[current_];
 
-      UploadConsumer consumer;
-      ApplyToDicomInstance(consumer, sourceId);
-
-      const std::string uploadedId = consumer.GetUploadedId();
-      const std::string metadata = (modification_->IsAnonymization() ? "AnonymizedFrom" : "ModifiedFrom");
-
-      Json::Value answer;
-      if (!OrthancPlugins::RestApiPut(answer, "/instances/" + uploadedId + "/metadata/" + metadata, sourceId, false))
-      {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot set metadata: " + metadata);
-      }
+      // enqueue the instances to process one by one.  The flow is controlled by the BlockingSharedMessageQueue that has one slot for each worker
+      instancesToProcess_.Enqueue(new Orthanc::SingleValueObject<std::string>(instances_[current_]));
 
       current_++;
 
@@ -322,8 +374,19 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
 void PixelsMaskerJob::Reset()
 {
   current_ = 0;
+  ClearThreads();
+  workersShouldStop_ = false;
 }
 
+void PixelsMaskerJob::ClearThreads()
+{
+  workersShouldStop_ = true;
+
+  for (size_t i = 0; i < workerThreadsCount_; i++)
+  {
+    instancesToProcess_.Enqueue(NULL); // that's the stop signal !
+  }
+}
 
 void PixelsMaskerJob::ApplyToDicomInstance(std::string& modifiedDicom,
                                            const std::string& instanceId)
