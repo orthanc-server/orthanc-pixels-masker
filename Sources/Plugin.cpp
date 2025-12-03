@@ -122,8 +122,7 @@ static void ModifyResource(OrthancPluginRestOutput* output,
 
     std::unique_ptr<PixelsMaskerJob> job(new PixelsMaskerJob(modification.release(), level, resourceId, body, workerThreadsCount_));
 
-    Json::Value answer = Json::objectValue;
-    OrthancPlugins::OrthancJob::SubmitFromRestApiPost(output, answer, job.release());
+    OrthancPlugins::OrthancJob::SubmitFromRestApiPost(output, body, job.release());
   }
 }
 
