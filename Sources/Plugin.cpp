@@ -204,11 +204,19 @@ extern "C"
       return -1;
     }
 
-    OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Pixel masker plugin for Orthanc.");
+    OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Pixels masker plugin for Orthanc.");
 
     try
     {
       OrthancPlugins::OrthancConfiguration configuration;
+
+      if (!configuration.IsSection("PixelsMasker") || !configuration.GetJson()["PixelsMasker"].isMember("Enable")
+        || !configuration.GetJson()["PixelsMasker"]["Enable"].asBool())
+      {
+        LOG(WARNING) << "PixelsMasker plugin is disabled.  Set `PixelsMasker.Enable` to `true` to enable it.";
+        return 0;
+      }
+
       defaultPrivateCreator_ = configuration.GetStringValue("DefaultPrivateCreator", "");
 
       if (configuration.IsSection("JobsEngineThreadsCount"))
@@ -241,7 +249,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    LOG(WARNING) << "Finalizing the pixel masker plugin";
+    LOG(WARNING) << "Finalizing the pixels masker plugin";
     Orthanc::Logging::Finalize();
   }
 
