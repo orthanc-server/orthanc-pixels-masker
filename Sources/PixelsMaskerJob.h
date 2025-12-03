@@ -53,7 +53,10 @@ private:
   bool                                         keepLabels_;
   std::vector<std::string>                     instances_;
   size_t                                       current_;
-  
+
+  boost::mutex                                 publicContentMutex_;
+  Json::Value                                  publicContent_;
+
   size_t                                       workerThreadsCount_;
   std::vector<boost::thread*>                  workerThreads_;
   bool                                         workersShouldStop_;

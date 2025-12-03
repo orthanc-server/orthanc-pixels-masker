@@ -29,8 +29,40 @@
 #include <Logging.h>
 
 
-static std::unique_ptr<OrthancPlugins::OrthancConfiguration> globalConfiguration_;
+  static const char* const TRANSCODE = "Transcode";
+  static const char* const KEEP_SOURCE = "KeepSource";
+  static const char* const KEEP_LABELS = "KeepLabels";
+  static const char* const KEY_FAILED_INSTANCES = "FailedInstances";
+  static const char* const KEY_PARENT_RESOURCES = "ParentResources";
+  static const char* const KEY_DESCRIPTION = "Description";
+  static const char* const KEY_PERMISSIVE = "Permissive";
+  static const char* const KEY_USER_DATA = "UserData";
+  static const char* const KEY_CURRENT_STEP = "CurrentStep";
+  static const char* const KEY_TYPE = "Type";
+  static const char* const KEY_INSTANCES = "Instances";
+  static const char* const KEY_INSTANCES_COUNT = "InstancesCount";
+  static const char* const KEY_FAILED_INSTANCES_COUNT = "FailedInstancesCount";
+  static const char* const KEY_KEEP_SOURCE = "KeepSource";
+  static const char* const KEY_WORKERS_COUNT = "WorkersCount";
 
+
+
+static std::string GetType(Orthanc::ResourceType level)
+{
+  switch (level)
+  {
+    case Orthanc::ResourceType_Patient:
+      return "Patient";
+    case Orthanc::ResourceType_Study:
+      return "Study";
+    case Orthanc::ResourceType_Series:
+      return "Series";
+    case Orthanc::ResourceType_Instance:
+      return "Instance";
+    default:
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+  }
+}
 
 static std::string GetBasePath(Orthanc::ResourceType level)
 {
@@ -200,9 +232,6 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
   workersShouldStop_(false),
   instancesToProcess_(workerThreadsCount)
 {
-  static const char* const TRANSCODE = "Transcode";
-  static const char* const KEEP_SOURCE = "KeepSource";
-  static const char* const KEEP_LABELS = "KeepLabels";
 
   if (modification == NULL)
   {
@@ -245,6 +274,14 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
   {
     GetInstances(instances_, level, resourceId);
   }
+
+  publicContent_[KEY_INSTANCES_COUNT] = instances_.size();
+  publicContent_[KEY_FAILED_INSTANCES_COUNT] = 0;
+  publicContent_["ID"] = resourceId;
+  publicContent_[KEY_TYPE] = GetType(level);
+  publicContent_["IsAnonymization"] = modification_->IsAnonymization();
+  
+  UpdateContent(publicContent_);
 }
 
 static boost::mutex modifierThreadsCounterMutex;
@@ -308,10 +345,18 @@ void PixelsMaskerJob::ModifierWorkerThread(PixelsMaskerJob* that)
     catch (Orthanc::OrthancException& e)
     {
       LOG(ERROR) << "Error while modifying instances " << e.GetDetails();
+      
+      boost::mutex::scoped_lock lock(that->publicContentMutex_);
+      that->publicContent_[KEY_FAILED_INSTANCES_COUNT] = that->publicContent_[KEY_FAILED_INSTANCES_COUNT].asUInt() + 1;
+      that->UpdateContent(that->publicContent_);
     }
     catch (...)
     {
       LOG(ERROR) << "Unknown error while modifying instances ";
+
+      boost::mutex::scoped_lock lock(that->publicContentMutex_);
+      that->publicContent_[KEY_FAILED_INSTANCES_COUNT] = that->publicContent_[KEY_FAILED_INSTANCES_COUNT].asUInt() + 1;
+      that->UpdateContent(that->publicContent_);
     }
   }
 }
@@ -323,7 +368,7 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
   {
     if (current_ == 0) // first step
     {
-      ClearContent();
+      UpdateContent(publicContent_);
 
       for (size_t i = 0; i < workerThreadsCount_; i++)
       {

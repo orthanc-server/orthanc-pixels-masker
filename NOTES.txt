@@ -40,11 +40,13 @@ curl http://localhost:8042/plugins/pixels-masker/instances/19565ed8-6bd8f20e-efb
 curl http://localhost:8042/plugins/pixels-masker/instances/19565ed8-6bd8f20e-efbd6c34-36688133-bc91329e/anonymize --data-binary '{"MaskPixelData" : {"Regions": [{"MaskType": "Fill", "FillValue": 0, "RegionType" : "Pixels", "Origin": [150, 100], "End": [400, 200]} ]} }' --output out.dcm
 
 # modify all slices of one series of a study
-curl -X POST http://localhost:8042/plugins/pixels-masker/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988/modify \
+curl -X POST http://localhost:8043/plugins/pixels-masker/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988/modify \
 --data-binary @- << EOF
 {
-    "Replace" : {"StudyInstanceUID": "1.2.2", "StudyDescription": "modified-all-slices"},
+    "Replace" : {"StudyInstanceUID": "1.2.3", "StudyDescription": "modified-all-slices2"},
     "Force": true,
+    "Asynchronous": true,
+    "KeepLabels": true,
     "MaskPixelData": {
         "Regions": [{
             "MaskType": "Fill",
