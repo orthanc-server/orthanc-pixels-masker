@@ -44,6 +44,8 @@
   static const char* const KEY_FAILED_INSTANCES_COUNT = "FailedInstancesCount";
   static const char* const KEY_KEEP_SOURCE = "KeepSource";
   static const char* const KEY_WORKERS_COUNT = "WorkersCount";
+  static const char* const KEY_ID = "ID";
+  static const char* const KEY_PATIENT_ID = "PatientID";
 
 
 
@@ -277,7 +279,8 @@ PixelsMaskerJob::PixelsMaskerJob(Orthanc::DicomModification* modification,
 
   publicContent_[KEY_INSTANCES_COUNT] = static_cast<unsigned int>(instances_.size());
   publicContent_[KEY_FAILED_INSTANCES_COUNT] = 0;
-  publicContent_["ID"] = resourceId;
+  publicContent_[KEY_PARENT_RESOURCES] = Json::arrayValue;
+  publicContent_[KEY_PARENT_RESOURCES].append(resourceId);
   publicContent_[KEY_TYPE] = GetType(level);
   publicContent_["IsAnonymization"] = modification_->IsAnonymization();
   
@@ -302,9 +305,21 @@ public:
     }
   }
 
-  std::string GetUploadedId() const
+  std::string GetUploadedResourceId(Orthanc::ResourceType level) const
   {
-    return Orthanc::SerializationToolbox::ReadString(answer_, "ID");
+    switch (level)
+    {
+    case Orthanc::ResourceType_Instance:
+      return Orthanc::SerializationToolbox::ReadString(answer_, "ID");
+    case Orthanc::ResourceType_Series:
+      return Orthanc::SerializationToolbox::ReadString(answer_, "ParentSeries");
+    case Orthanc::ResourceType_Study:
+      return Orthanc::SerializationToolbox::ReadString(answer_, "ParentStudy");
+    case Orthanc::ResourceType_Patient:
+      return Orthanc::SerializationToolbox::ReadString(answer_, "ParentPatient");
+    default:
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    }
   }
 };
 
@@ -333,13 +348,20 @@ void PixelsMaskerJob::ModifierWorkerThread(PixelsMaskerJob* that)
 
       that->ApplyToDicomInstance(consumer, sourceId);
 
-      const std::string uploadedId = consumer.GetUploadedId();
+      const std::string uploadedInstanceId = consumer.GetUploadedResourceId(Orthanc::ResourceType_Instance);
       const std::string metadata = (that->modification_->IsAnonymization() ? "AnonymizedFrom" : "ModifiedFrom");
 
       Json::Value answer;
-      if (!OrthancPlugins::RestApiPut(answer, "/instances/" + uploadedId + "/metadata/" + metadata, sourceId, false))
+      if (!OrthancPlugins::RestApiPut(answer, "/instances/" + uploadedInstanceId + "/metadata/" + metadata, sourceId, false))
       {
         throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Cannot set metadata: " + metadata);
+      }
+
+      {
+        boost::mutex::scoped_lock lock(that->publicContentMutex_);
+        that->publicContent_[KEY_ID] = consumer.GetUploadedResourceId(that->modification_->GetLevel());
+        that->publicContent_[KEY_PATIENT_ID] = consumer.GetUploadedResourceId(Orthanc::ResourceType_Patient);
+        that->UpdateContent(that->publicContent_);
       }
     }
     catch (Orthanc::OrthancException& e)
@@ -387,7 +409,10 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
         }
       }
 
+      instancesToProcess_.WaitEmpty(0);
+      
       UpdateProgress(1);
+
       ClearThreads();
       
       return OrthancPluginJobStepStatus_Success;

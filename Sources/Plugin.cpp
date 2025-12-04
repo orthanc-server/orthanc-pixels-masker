@@ -110,6 +110,7 @@ static void ModifyResource(OrthancPluginRestOutput* output,
     
     Json::Value body;
     std::unique_ptr<Orthanc::DicomModification> modification(new Orthanc::DicomModification);
+    modification->SetLevel(level);
 
     if (isAnonymization)
     {
