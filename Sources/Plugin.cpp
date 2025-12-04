@@ -95,9 +95,9 @@ static void ParseAnonymizationRequest(Json::Value& body,
 
 
 template <Orthanc::ResourceType level, bool isAnonymization>
-static void ModifyResource(OrthancPluginRestOutput* output,
-                           const char* url,
-                           const OrthancPluginHttpRequest* request)
+void ModifyResource(OrthancPluginRestOutput* output,
+                    const char* url,
+                    const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Post)
   {
@@ -128,9 +128,9 @@ static void ModifyResource(OrthancPluginRestOutput* output,
 
 
 template <bool isAnonymization>
-static void ModifyInstance(OrthancPluginRestOutput* output,
-                           const char* url,
-                           const OrthancPluginHttpRequest* request)
+void ModifyInstance(OrthancPluginRestOutput* output,
+                    const char* url,
+                    const OrthancPluginHttpRequest* request)
 {
   if (request->method != OrthancPluginHttpMethod_Post)
   {
