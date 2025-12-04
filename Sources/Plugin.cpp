@@ -226,16 +226,16 @@ extern "C"
         jobsEngineThreadsCountConfig.LookupUnsignedIntegerValue(workerThreadsCount_, "ResourceModification");
       }
 
-      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Patient, false> >("/plugins/pixels-masker/patients/([0-9a-f-]+)/modify", true);
-      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Study, false> >("/plugins/pixels-masker/studies/([0-9a-f-]+)/modify", true);
-      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Series, false> >("/plugins/pixels-masker/series/([0-9a-f-]+)/modify", true);
+      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Patient, false> >(std::string("/plugins/pixels-masker/patients/([0-9a-f-]+)/modify"), true);
+      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Study, false> >(std::string("/plugins/pixels-masker/studies/([0-9a-f-]+)/modify"), true);
+      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Series, false> >(std::string("/plugins/pixels-masker/series/([0-9a-f-]+)/modify"), true);
       
-      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Patient, true> >("/plugins/pixels-masker/patients/([0-9a-f-]+)/anonymize", true);
-      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Study, true> >("/plugins/pixels-masker/studies/([0-9a-f-]+)/anonymize", true);
-      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Series, true> >("/plugins/pixels-masker/series/([0-9a-f-]+)/anonymize", true);
+      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Patient, true> >(std::string("/plugins/pixels-masker/patients/([0-9a-f-]+)/anonymize"), true);
+      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Study, true> >(std::string("/plugins/pixels-masker/studies/([0-9a-f-]+)/anonymize"), true);
+      OrthancPlugins::RegisterRestCallback< ModifyResource<Orthanc::ResourceType_Series, true> >(std::string("/plugins/pixels-masker/series/([0-9a-f-]+)/anonymize"), true);
 
-      OrthancPlugins::RegisterRestCallback< ModifyInstance<false> >("/plugins/pixels-masker/instances/([0-9a-f-]+)/modify", true);
-      OrthancPlugins::RegisterRestCallback< ModifyInstance<true> >("/plugins/pixels-masker/instances/([0-9a-f-]+)/anonymize", true);
+      OrthancPlugins::RegisterRestCallback< ModifyInstance<false> >(std::string("/plugins/pixels-masker/instances/([0-9a-f-]+)/modify"), true);
+      OrthancPlugins::RegisterRestCallback< ModifyInstance<true> >(std::string("/plugins/pixels-masker/instances/([0-9a-f-]+)/anonymize"), true);
     }
     catch (Orthanc::OrthancException& e)
     {
