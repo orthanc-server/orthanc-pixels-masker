@@ -1,4 +1,4 @@
-Pending changes in the mainline
-===============================
+0.1.0
+=====
 
 Initial release.

@@ -27,7 +27,7 @@ set(ORTHANC_PLUGIN_VERSION "mainline")
 set(ORTHANC_PLUGIN_NAME "pixels-masker")
 
 if (PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
-  set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "e0979326ac53") # while waiting for 1.12.11
+  set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "94c7f3784456") # while waiting for 1.12.11
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "web")
 else()
   set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "mainline")
