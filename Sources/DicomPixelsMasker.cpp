@@ -426,12 +426,12 @@ void DicomPixelsMasker::ParseRequest(const Json::Value& request)
             if (regionJson.isMember(KEY_ORIGIN) && regionJson[KEY_ORIGIN].isArray() && regionJson[KEY_ORIGIN].size() == 2 &&
                 regionJson.isMember(KEY_END) && regionJson[KEY_END].isArray() && regionJson[KEY_END].size() == 2)
             {
-              unsigned int x = regionJson[KEY_ORIGIN][0].asUInt();
-              unsigned int y = regionJson[KEY_ORIGIN][1].asUInt();
-              unsigned int width = regionJson[KEY_END][0].asUInt() - x;
-              unsigned int height = regionJson[KEY_END][1].asUInt() - y;
+              unsigned int x1 = regionJson[KEY_ORIGIN][0].asUInt();
+              unsigned int y1 = regionJson[KEY_ORIGIN][1].asUInt();
+              unsigned int x2 = regionJson[KEY_END][0].asUInt();
+              unsigned int y2 = regionJson[KEY_END][1].asUInt();
                 
-              region.reset(new Region2D(x, y, width, height));
+              region.reset(new Region2D(x1, y1, x2, y2));
             }
             else
             {
@@ -466,14 +466,15 @@ void DicomPixelsMasker::ParseRequest(const Json::Value& request)
 
         if (regionJson.isMember(KEY_MASK_TYPE) && regionJson[KEY_MASK_TYPE].isString())
         {
-          bool ok = false;
-        
           if (regionJson[KEY_MASK_TYPE].asString() == KEY_MASK_TYPE_FILL)
           {
             if (regionJson.isMember(KEY_FILL_VALUE) && regionJson[KEY_FILL_VALUE].isInt())
             {
               region->SetFillValue(regionJson[KEY_FILL_VALUE].asInt());
-              ok = true;
+            }
+            else  
+            {
+              throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "No " + std::string(KEY_FILL_VALUE) + " field found (or invalid type).");
             }
           }
           else if (regionJson[KEY_MASK_TYPE].asString() == KEY_MASK_TYPE_MEAN_FILTER)
@@ -481,13 +482,15 @@ void DicomPixelsMasker::ParseRequest(const Json::Value& request)
             if (regionJson.isMember(KEY_FILTER_WIDTH) && regionJson[KEY_FILTER_WIDTH].isUInt())
             {
               region->SetMeanFilter(regionJson[KEY_FILTER_WIDTH].asUInt());
-              ok = true;
+            }
+            else  
+            {
+              throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "No " + std::string(KEY_FILTER_WIDTH) + " field found (or invalid type)");
             }
           }
-
-          if (!ok)
+          else  
           {
-            throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, std::string(KEY_MASK_TYPE) + " should be '" + KEY_MASK_TYPE_FILL +"' or '" + KEY_MASK_TYPE_MEAN_FILTER + "'.");
+            throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, std::string(KEY_MASK_TYPE) + " should be '" + KEY_MASK_TYPE_FILL +"' or '" + KEY_MASK_TYPE_MEAN_FILTER + "'.  Not " + regionJson[KEY_MASK_TYPE].asString());
           }
         }
 
