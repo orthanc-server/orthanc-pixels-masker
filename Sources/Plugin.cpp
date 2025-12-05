@@ -207,6 +207,29 @@ extern "C"
 
     OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Pixels masker plugin for Orthanc.");
 
+    { // init the OrthancFramework
+      static const char* const LOCALE = "Locale";
+      static const char* const DEFAULT_ENCODING = "DefaultEncoding";
+
+      /**
+       * This function is a simplified version of function
+       * "Orthanc::OrthancInitialize()" that is executed when starting the
+       * Orthanc server.
+       **/
+      OrthancPlugins::OrthancConfiguration globalConfig;
+      Orthanc::InitializeFramework(globalConfig.GetStringValue(LOCALE, ""), false /* loadPrivateDictionary */);
+
+      std::string encoding;
+      if (globalConfig.LookupStringValue(encoding, DEFAULT_ENCODING))
+      {
+        Orthanc::SetDefaultDicomEncoding(Orthanc::StringToEncoding(encoding.c_str()));
+      }
+      else
+      {
+        Orthanc::SetDefaultDicomEncoding(Orthanc::ORTHANC_DEFAULT_DICOM_ENCODING);
+      }      
+    }
+
     try
     {
       OrthancPlugins::OrthancConfiguration configuration;
