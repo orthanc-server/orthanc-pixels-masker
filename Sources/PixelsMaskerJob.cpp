@@ -179,7 +179,10 @@ void PixelsMaskerJob::ApplyToDicomInstance(IDicomConsumer& consumer,
     GetLabels(patientLabels, Orthanc::ResourceType_Patient, originalHasher.HashPatient());
   }
 
-  modification_->Apply(dicom);
+  {
+    boost::mutex::scoped_lock lock(modificationMutex_);  // DicomModification object is not thread safe, we must protect it ourselves to prevent having e.g. inconsistent UID mappings
+    modification_->Apply(dicom);
+  }
 
   dicom->SaveToMemoryBuffer(file);
 
@@ -390,6 +393,7 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
   {
     if (current_ == 0) // first step
     {
+      boost::mutex::scoped_lock lock(publicContentMutex_);
       UpdateContent(publicContent_);
 
       for (size_t i = 0; i < workerThreadsCount_; i++)

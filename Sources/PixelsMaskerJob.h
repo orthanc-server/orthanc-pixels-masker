@@ -46,6 +46,7 @@ public:
   };
 
 private:
+  boost::mutex                                 modificationMutex_;
   std::unique_ptr<Orthanc::DicomModification>  modification_;
   bool                                         transcode_;
   std::string                                  targetSyntax_;
