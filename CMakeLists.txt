@@ -23,7 +23,7 @@ cmake_minimum_required(VERSION 2.8...4.0)
 
 project(OrthancPixelsMasker)
 
-set(ORTHANC_PLUGIN_VERSION "mainline")
+set(ORTHANC_PLUGIN_VERSION "mainline" CACHE STRING "plugin version 'mainline' or '1.2.3'")
 set(ORTHANC_PLUGIN_NAME "pixels-masker")
 
 if (PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
