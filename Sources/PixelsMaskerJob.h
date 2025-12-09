@@ -59,7 +59,7 @@ private:
   Json::Value                                  publicContent_;
 
   size_t                                       workerThreadsCount_;
-  std::vector<boost::thread*>                  workerThreads_;
+  std::vector<boost::shared_ptr<boost::thread> > workerThreads_;
   bool                                         workersShouldStop_;
   Orthanc::BlockingSharedMessageQueue          instancesToProcess_;
 

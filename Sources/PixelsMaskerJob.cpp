@@ -396,9 +396,11 @@ OrthancPluginJobStepStatus PixelsMaskerJob::Step()
       boost::mutex::scoped_lock lock(publicContentMutex_);
       UpdateContent(publicContent_);
 
+      workerThreads_.reserve(workerThreadsCount_);
+
       for (size_t i = 0; i < workerThreadsCount_; i++)
       {
-        workerThreads_.push_back(new boost::thread(ModifierWorkerThread, this));
+        workerThreads_.push_back(boost::shared_ptr<boost::thread>(new boost::thread(ModifierWorkerThread, this)));
       }
 
     }
@@ -459,6 +461,14 @@ void PixelsMaskerJob::ClearThreads()
   for (size_t i = 0; i < workerThreadsCount_; i++)
   {
     instancesToProcess_.Enqueue(NULL); // that's the stop signal !
+  }
+
+  for (size_t i = 0; i < workerThreadsCount_; i++)
+  {
+    if (workerThreads_[i]->joinable())
+    {
+      workerThreads_[i]->join();
+    }
   }
 }
 
