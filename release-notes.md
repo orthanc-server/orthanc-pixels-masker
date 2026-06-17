@@ -2,7 +2,7 @@ Pending changes
 ===============
 
 Fixes:
-- Fix a memory leak.
+- Fixed a memory leak.
 
 0.1.1 (2025-12-08)
 ==================
