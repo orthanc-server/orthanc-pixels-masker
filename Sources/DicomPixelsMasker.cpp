@@ -463,6 +463,10 @@ void DicomPixelsMasker::ParseRequest(const Json::Value& request)
             throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, std::string(KEY_REGION_TYPE) + " unrecognized value '" + regionJson[KEY_REGION_TYPE].asString() +"'");
           }
         }
+        else
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, std::string(KEY_REGION_TYPE) + " is missing");
+        }
 
         if (regionJson.isMember(KEY_MASK_TYPE) && regionJson[KEY_MASK_TYPE].isString())
         {
