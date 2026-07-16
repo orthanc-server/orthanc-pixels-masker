@@ -336,7 +336,7 @@ void PixelsMaskerJob::ModifierWorkerThread(PixelsMaskerJob* that)
     modifierThreadsCounter %= 1000000;
   }
 
-  Orthanc::Logging::ScopedThreadNameSetter setter(std::string("PIXM-MODI-") + boost::lexical_cast<std::string>(threadId));
+  Orthanc::Logging::ScopedCurrentThreadNameSetter setter(std::string("PIXM-MODI-") + boost::lexical_cast<std::string>(threadId));
 
   while (true)
   {

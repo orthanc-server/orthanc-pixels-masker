@@ -27,7 +27,7 @@ set(ORTHANC_PLUGIN_VERSION "mainline" CACHE STRING "plugin version 'branch-name'
 set(ORTHANC_PLUGIN_NAME "pixels-masker")
 
 if (ORTHANC_PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
-  set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "004b351797fe") # while waiting for 1.12.12 for ScopedThreadNameSetter
+  set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "004b351797fe") # TODO, upgrade before release for ScopedCurrentThreadNameSetter in 1.13.0
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "web")
   set(PLUGIN_DLL_VERSION "${ORTHANC_PLUGIN_VERSION}")
 else()
