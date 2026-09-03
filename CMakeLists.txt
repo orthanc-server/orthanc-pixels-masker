@@ -25,11 +25,16 @@ project(OrthancPixelsMasker)
 
 set(ORTHANC_PLUGIN_VERSION "mainline" CACHE STRING "plugin version 'branch-name' or '1.2.3'")
 set(ORTHANC_PLUGIN_NAME "pixels-masker")
+set(FORCE_FRAMEWORK_FROM_WEB OFF CACHE BOOL "For servers not having access to mercurial")
 
-if (ORTHANC_PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+if (ORTHANC_PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" OR FORCE_FRAMEWORK_FROM_WEB)
   set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "c1dcb63cde6f") # pre 1.13.1 for THIRD_PARTY_DOWNLOADS_ROOT_URL
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "web")
-  set(PLUGIN_DLL_VERSION "${ORTHANC_PLUGIN_VERSION}")
+  if (ORTHANC_PLUGIN_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+    set(PLUGIN_DLL_VERSION "${ORTHANC_PLUGIN_VERSION}")
+  else()
+    set(PLUGIN_DLL_VERSION "mainline")
+  endif()
 else()
   set(ORTHANC_FRAMEWORK_DEFAULT_VERSION "mainline")
   set(ORTHANC_FRAMEWORK_DEFAULT_SOURCE "hg")
